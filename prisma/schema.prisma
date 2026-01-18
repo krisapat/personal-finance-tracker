@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+model Profile {
+  id                 String         @id @default(uuid())
+  clerkId            String         @unique
+  email              String         @unique
+  userName           String         @unique
+  profileImage       String
+  defaultDailyBudget Decimal?
+  createdAt          DateTime       @default(now())
+  budget             Budget[]
+  transactions       Transaction[]
+  dailySummaries     DailySummary[]
+}
+
+model Budget {
+  id        String   @id @default(uuid())
+  profileId String   @unique
+  amount    Decimal
+  profile   Profile  @relation(fields: [profileId], references: [clerkId], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  profileId String
+  type      String // "INCOME" | "EXPENSE"
+  category  String // เช่น "food", "travel"
+  amount    Decimal
+  note      String?
+  date      DateTime
+  profile   Profile  @relation(fields: [profileId], references: [clerkId], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([profileId, date])
+  @@index([profileId, type])
+  @@index([profileId, category])
+}
+
+model DailySummary {
+  id               String   @id @default(cuid())
+  profileId        String
+  date             DateTime @db.Date
+  budgetAtThatTime Decimal
+  totalIncome      Decimal  @default(0)
+  totalExpense     Decimal  @default(0)
+  netAmount        Decimal
+  runningBalance   Decimal
+  status           String // "UNDER_BUDGET" | "OVER_BUDGET"
+  profile          Profile  @relation(fields: [profileId], references: [clerkId], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([profileId, date])
+  @@index([profileId, status])
+  @@index([profileId, date])
+}
